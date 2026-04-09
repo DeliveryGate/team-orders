@@ -1,6 +1,6 @@
 client_id = "PLACEHOLDER_NEEDS_CONFIG_LINK"
 name = "Team Orders — Weekly B2B Catering"
-application_url = "https://shopify.dev/apps/default-app-home"
+application_url = "https://shopify-team-orders-production.up.railway.app"
 embedded = true
 
 [build]
@@ -14,4 +14,4 @@ api_version = "2026-07"
 scopes = "read_products,write_products"
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+redirect_urls = [ "https://shopify-team-orders-production.up.railway.app/api/auth" ]
