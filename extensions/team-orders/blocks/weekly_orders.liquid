@@ -1,0 +1,1186 @@
+{% comment %}
+  Team Orders — Weekly B2B Catering
+  ─────────────────────────────────────────
+  Theme App Extension block. Drop onto any page via the Theme Editor.
+  Renders the full weekly ordering widget: day picker, meal size selector,
+  per-day quantity inputs, pricing, allergen warnings, team notes,
+  week commencing date picker, volume discount display, and cart submission.
+
+  Configuration is loaded from the Team Orders app backend (/api/config).
+  Cart items are added via /cart/add.js — one line item per active day.
+
+  Line item properties:
+    Day: Monday | Week: 2026-04-14 | Meal: Large Tray | Team Notes: ... | Allergy Notes: ...
+{% endcomment %}
+
+<section class="to-wm" id="team-orders-weekly">
+<style>
+/* ========================================
+   TEAM ORDERS — WEEKLY B2B CATERING STYLES
+   ======================================== */
+.to-wm {
+  padding: 0 0 60px;
+  background: linear-gradient(180deg, rgba(237,244,234,0.8) 0%, #fff 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.to-wm__wrap {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* --- HERO --- */
+.to-wm__hero {
+  text-align: center;
+  padding: 48px 20px 36px;
+}
+
+.to-wm__title {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 12px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.to-wm__intro {
+  font-size: clamp(15px, 2vw, 18px);
+  color: rgba(0,0,0,0.6);
+  margin: 0 auto 32px;
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+/* --- HOW IT WORKS --- */
+.to-wm__steps {
+  margin-bottom: 32px;
+}
+
+.to-wm__steps-title {
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #268a3a;
+  margin: 0 0 16px;
+}
+
+.to-wm__steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.to-wm__step {
+  background: #fff;
+  border: 2px solid #d9e6cf;
+  border-radius: 16px;
+  padding: 18px 14px;
+  text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.to-wm__step:hover {
+  border-color: #268a3a;
+  box-shadow: 0 6px 20px rgba(48,155,66,0.1);
+}
+
+.to-wm__step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #268a3a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 50%;
+  margin-bottom: 8px;
+}
+
+.to-wm__step-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 4px;
+}
+
+.to-wm__step-text {
+  font-size: 0.8rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* --- MAIN FORM CARD --- */
+.to-wm__form-card {
+  background: rgba(255,255,255,0.95);
+  border: 2px solid #d9e6cf;
+  border-radius: 20px;
+  padding: 32px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+}
+
+.to-wm__section-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 14px;
+}
+
+/* --- MEAL SIZE SELECTOR --- */
+.to-wm__size-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.to-wm__size-card {
+  cursor: pointer;
+}
+
+.to-wm__size-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.to-wm__size-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 12px;
+  background: #fff;
+  border: 2px solid #d9e6cf;
+  border-radius: 14px;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.to-wm__size-card input:checked + .to-wm__size-inner {
+  border-color: #268a3a;
+  background: rgba(48,155,66,0.04);
+  box-shadow: 0 4px 16px rgba(48,155,66,0.12);
+}
+
+.to-wm__size-card:hover .to-wm__size-inner {
+  border-color: #268a3a;
+}
+
+.to-wm__size-name { font-size: 1rem; font-weight: 700; color: #1a1a1a; }
+.to-wm__size-price { font-size: 1.3rem; font-weight: 800; color: #268a3a; margin: 4px 0; }
+.to-wm__size-desc { font-size: 0.8rem; color: #666; line-height: 1.4; }
+.to-wm__size-min { font-size: 0.75rem; color: #888; margin-top: 4px; }
+
+/* --- WEEK PICKER --- */
+.to-wm__week {
+  margin-bottom: 24px;
+}
+
+.to-wm__week-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.to-wm__week-label {
+  font-weight: 600;
+  font-size: 14px;
+  color: #555;
+  white-space: nowrap;
+}
+
+.to-wm__week-input {
+  padding: 10px 14px;
+  border: 2px solid #d9e6cf;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.to-wm__week-input:focus {
+  outline: none;
+  border-color: #268a3a;
+}
+
+.to-wm__week-hint {
+  font-size: 12px;
+  color: rgba(0,0,0,0.45);
+  margin-top: 6px;
+}
+
+/* --- DAY PICKER --- */
+.to-wm__days {
+  margin-bottom: 24px;
+}
+
+.to-wm__days-grid {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.to-wm__day-btn {
+  flex: 1;
+  min-width: 72px;
+  padding: 12px 8px;
+  background: #fff;
+  border: 2px solid #d9e6cf;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 600;
+  font-size: 14px;
+  color: #333;
+  position: relative;
+}
+
+.to-wm__day-btn:hover {
+  border-color: #268a3a;
+}
+
+.to-wm__day-btn.is-active {
+  background: rgba(48,155,66,0.08);
+  border-color: #268a3a;
+  color: #268a3a;
+}
+
+.to-wm__day-btn.is-popular::after {
+  content: attr(data-popular-label);
+  display: block;
+  font-size: 9px;
+  color: #FBBC04;
+  font-weight: 700;
+  margin-top: 3px;
+  letter-spacing: 0.02em;
+}
+
+.to-wm__days-hint {
+  font-size: 12px;
+  color: rgba(0,0,0,0.45);
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* --- PER-DAY CONFIG ROWS --- */
+.to-wm__day-config {
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  background: rgba(248,251,245,0.8);
+  border: 1px solid rgba(48,155,66,0.12);
+  border-radius: 14px;
+}
+
+.to-wm__day-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.to-wm__day-label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #268a3a;
+}
+
+.to-wm__day-qty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.to-wm__day-qty label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+.to-wm__qty-input {
+  width: 70px;
+  padding: 8px;
+  border: 2px solid #d9e6cf;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+}
+
+.to-wm__qty-input:focus {
+  outline: none;
+  border-color: #268a3a;
+}
+
+.to-wm__day-price {
+  font-size: 13px;
+  font-weight: 700;
+  color: #268a3a;
+}
+
+/* --- ALLERGEN BOX --- */
+.to-wm__allergen-box {
+  background: #fff8e6;
+  border: 2px solid #f0d78c;
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: 20px 0;
+  font-size: 14px;
+  display: none;
+}
+
+.to-wm__allergen-box.is-visible {
+  display: block;
+}
+
+/* --- VOLUME DISCOUNT TIERS --- */
+.to-wm__discounts {
+  margin: 20px 0;
+}
+
+.to-wm__discount-tier {
+  padding: 10px 14px;
+  background: rgba(48,155,66,0.06);
+  border: 1px solid rgba(48,155,66,0.2);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #268a3a;
+  display: none;
+}
+
+.to-wm__discount-tier.is-active {
+  display: block;
+}
+
+/* --- NOTES --- */
+.to-wm__notes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.to-wm__field label {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.to-wm__field textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #d9e6cf;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 70px;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.to-wm__field textarea:focus {
+  outline: none;
+  border-color: #268a3a;
+}
+
+/* --- SUMMARY / FOOTER --- */
+.to-wm__summary {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 2px solid #d9e6cf;
+}
+
+.to-wm__summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
+
+.to-wm__summary-label { color: #555; font-weight: 500; }
+.to-wm__summary-value { font-weight: 700; color: #1a1a1a; }
+.to-wm__summary-total { font-size: 1.4rem; font-weight: 800; color: #268a3a; }
+
+.to-wm__min-warn {
+  background: #fff8e6;
+  border: 1px solid #f0d78c;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #856404;
+  text-align: center;
+  margin-top: 12px;
+  display: none;
+}
+
+.to-wm__min-warn.is-visible {
+  display: block;
+}
+
+.to-wm__submit {
+  width: 100%;
+  margin-top: 18px;
+  padding: 16px 32px;
+  background: #268a3a;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+
+.to-wm__submit:hover {
+  background: #1e6b2e;
+  transform: translateY(-2px);
+}
+
+.to-wm__submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.to-wm__submit-hint {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(0,0,0,0.45);
+  margin-top: 10px;
+  line-height: 1.4;
+}
+
+/* --- LOADING STATE --- */
+.to-wm__loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: #555;
+}
+
+.to-wm__error-banner {
+  background: #fff5f5;
+  border: 2px solid #f5a5a5;
+  border-radius: 12px;
+  padding: 16px 20px;
+  text-align: center;
+  color: #c53030;
+  margin: 20px 0;
+  display: none;
+}
+
+.to-wm__error-banner.is-visible {
+  display: block;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 749px) {
+  .to-wm__hero { padding: 32px 16px 24px; }
+  .to-wm__form-card { padding: 20px 16px; }
+  .to-wm__steps-grid { grid-template-columns: 1fr 1fr; }
+  .to-wm__size-options { grid-template-columns: 1fr 1fr; }
+  .to-wm__notes-grid { grid-template-columns: 1fr; }
+  .to-wm__days-grid { gap: 6px; }
+  .to-wm__day-btn { min-width: 56px; padding: 10px 6px; font-size: 13px; }
+  .to-wm__day-config { padding: 14px; }
+}
+
+@media (max-width: 480px) {
+  .to-wm__steps-grid { grid-template-columns: 1fr; }
+  .to-wm__week-row { flex-direction: column; align-items: flex-start; }
+}
+</style>
+
+<div class="to-wm__wrap">
+
+  <!-- Loading state -->
+  <div class="to-wm__loading" id="toWmLoading">Loading weekly ordering...</div>
+
+  <!-- Error state -->
+  <div class="to-wm__error-banner" id="toWmError">Unable to load ordering configuration. Please refresh the page.</div>
+
+  <!-- Main content (hidden until config loaded) -->
+  <div id="toWmContent" style="display:none;">
+
+    <!-- HERO -->
+    <div class="to-wm__hero">
+      <h1 class="to-wm__title" id="toWmTitle">Team Lunches</h1>
+      <p class="to-wm__intro" id="toWmIntro"></p>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <div class="to-wm__steps">
+      <h2 class="to-wm__steps-title">How It Works</h2>
+      <div class="to-wm__steps-grid">
+        <div class="to-wm__step">
+          <span class="to-wm__step-num">1</span>
+          <h3 class="to-wm__step-title">Pick your days</h3>
+          <p class="to-wm__step-text">Choose which days your team needs catering</p>
+        </div>
+        <div class="to-wm__step">
+          <span class="to-wm__step-num">2</span>
+          <h3 class="to-wm__step-title">Select meal size</h3>
+          <p class="to-wm__step-text">Choose the tray or portion size that fits your team</p>
+        </div>
+        <div class="to-wm__step">
+          <span class="to-wm__step-num">3</span>
+          <h3 class="to-wm__step-title">Set quantities</h3>
+          <p class="to-wm__step-text">Enter how many portions per day your team needs</p>
+        </div>
+        <div class="to-wm__step">
+          <span class="to-wm__step-num">4</span>
+          <h3 class="to-wm__step-title">Add to cart</h3>
+          <p class="to-wm__step-text">One click adds your full weekly order to the cart</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN FORM -->
+    <form class="to-wm__form-card" id="toWmForm">
+
+      <!-- Meal Size Selector -->
+      <h3 class="to-wm__section-title">Choose Meal Size</h3>
+      <div class="to-wm__size-options" id="toWmSizes">
+        <!-- Populated by JS from config -->
+      </div>
+
+      <!-- Week Commencing Picker -->
+      <div class="to-wm__week">
+        <h3 class="to-wm__section-title">Which week is this order for?</h3>
+        <div class="to-wm__week-row">
+          <label for="toWmWeekStart" class="to-wm__week-label">Week commencing Monday</label>
+          <input type="date" id="toWmWeekStart" class="to-wm__week-input" required>
+        </div>
+        <p class="to-wm__week-hint" id="toWmWeekHint">Select the Monday of the week you need deliveries.</p>
+      </div>
+
+      <!-- Day Picker -->
+      <div class="to-wm__days">
+        <h3 class="to-wm__section-title">Which days does your team need catering?</h3>
+        <div class="to-wm__days-grid" id="toWmDaysGrid">
+          <!-- Populated by JS from config -->
+        </div>
+        <p class="to-wm__days-hint" id="toWmDaysHint"></p>
+      </div>
+
+      <!-- Per-day quantity configs (populated by JS) -->
+      <div id="toWmDayConfigs"></div>
+
+      <!-- Allergen Warning -->
+      <div class="to-wm__allergen-box" id="toWmAllergenBox">
+        <strong>Allergen notice:</strong> <span id="toWmAllergenText"></span>
+      </div>
+
+      <!-- Volume Discount Tiers -->
+      <div class="to-wm__discounts" id="toWmDiscounts"></div>
+
+      <!-- Team Notes -->
+      <div class="to-wm__notes-grid">
+        <div class="to-wm__field">
+          <label for="toWmTeamNotes">Team notes</label>
+          <textarea id="toWmTeamNotes" placeholder="Delivery instructions, access codes, floor number..."></textarea>
+        </div>
+        <div class="to-wm__field">
+          <label for="toWmAllergyNotes">Allergy &amp; dietary notes</label>
+          <textarea id="toWmAllergyNotes" placeholder="List any allergies or dietary requirements for your team..."></textarea>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="to-wm__summary">
+        <div class="to-wm__summary-row">
+          <span class="to-wm__summary-label">Days selected</span>
+          <span class="to-wm__summary-value" id="toWmDaysCount">0</span>
+        </div>
+        <div class="to-wm__summary-row">
+          <span class="to-wm__summary-label">Total portions</span>
+          <span class="to-wm__summary-value" id="toWmTotalQty">0</span>
+        </div>
+        <div class="to-wm__summary-row">
+          <span class="to-wm__summary-label">Price per portion</span>
+          <span class="to-wm__summary-value" id="toWmPerPortion">—</span>
+        </div>
+        <div class="to-wm__summary-row">
+          <span class="to-wm__summary-label" style="font-weight:700;color:#1a1a1a;">Weekly total</span>
+          <span class="to-wm__summary-total" id="toWmTotal">$0.00</span>
+        </div>
+
+        <div class="to-wm__min-warn" id="toWmMinWarn"></div>
+
+        <button type="submit" class="to-wm__submit" id="toWmSubmit" disabled>
+          Add Complete Weekly Order to Cart
+        </button>
+
+        <p class="to-wm__submit-hint">
+          Each delivery day is saved as a separate line item with full details. View and edit at checkout.
+        </p>
+      </div>
+    </form>
+
+  </div><!-- /toWmContent -->
+
+</div><!-- /to-wm__wrap -->
+
+<script>
+(function() {
+  'use strict';
+
+  /* ============================================================
+     TEAM ORDERS — WEEKLY ORDERING WIDGET
+     Loads config from app backend, renders day/size selectors,
+     calculates live pricing, submits to /cart/add.js
+  ============================================================ */
+
+  var APP_URL = {{ shop.metafields.team_orders.app_url | json | default: '""' }};
+  var CONFIG = null;
+
+  /* DOM refs */
+  var loadingEl   = document.getElementById('toWmLoading');
+  var errorEl     = document.getElementById('toWmError');
+  var contentEl   = document.getElementById('toWmContent');
+  var sizesEl     = document.getElementById('toWmSizes');
+  var daysGridEl  = document.getElementById('toWmDaysGrid');
+  var dayConfigsEl= document.getElementById('toWmDayConfigs');
+  var weekInput   = document.getElementById('toWmWeekStart');
+  var daysHintEl  = document.getElementById('toWmDaysHint');
+  var weekHintEl  = document.getElementById('toWmWeekHint');
+  var allergenBox = document.getElementById('toWmAllergenBox');
+  var allergenTxt = document.getElementById('toWmAllergenText');
+  var discountsEl = document.getElementById('toWmDiscounts');
+  var teamNotesEl = document.getElementById('toWmTeamNotes');
+  var allergyNotes= document.getElementById('toWmAllergyNotes');
+  var daysCountEl = document.getElementById('toWmDaysCount');
+  var totalQtyEl  = document.getElementById('toWmTotalQty');
+  var perPortionEl= document.getElementById('toWmPerPortion');
+  var totalEl     = document.getElementById('toWmTotal');
+  var minWarnEl   = document.getElementById('toWmMinWarn');
+  var submitBtn   = document.getElementById('toWmSubmit');
+  var form        = document.getElementById('toWmForm');
+  var titleEl     = document.getElementById('toWmTitle');
+  var introEl     = document.getElementById('toWmIntro');
+
+  /* Day display names */
+  var DAY_NAMES = {
+    monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday',
+    thursday: 'Thursday', friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday'
+  };
+  var DAY_SHORT = {
+    monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed',
+    thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun'
+  };
+  var DAY_OFFSETS = { monday: 0, tuesday: 1, wednesday: 2, thursday: 3, friday: 4, saturday: 5, sunday: 6 };
+
+  /* Track which days are toggled on */
+  var activeDays = [];
+
+  /* ---- Load Config ---- */
+  function loadConfig() {
+    /* Try to load from app backend. Falls back gracefully if not configured. */
+    var configUrl = APP_URL ? (APP_URL + '/api/config') : '/apps/team-orders/api/config';
+    fetch(configUrl, { headers: { 'Accept': 'application/json' } })
+      .then(function(r) {
+        if (!r.ok) throw new Error('Config load failed: ' + r.status);
+        return r.json();
+      })
+      .then(function(config) {
+        CONFIG = config;
+        initWidget(config);
+      })
+      .catch(function(err) {
+        console.warn('[TeamOrders] Config load error:', err);
+        /* Render with sensible defaults so merchant can still test */
+        initWidget({
+          pageTitle: 'Team Lunches',
+          pageIntro: '',
+          availableDays: ['monday','tuesday','wednesday','thursday','friday'],
+          popularDays: ['tuesday','wednesday','thursday'],
+          popularDaysLabel: 'Most Popular',
+          advanceNoticeDays: 1,
+          allergenDisclaimer: '',
+          mealSizes: [],
+          discounts: [],
+        });
+      });
+  }
+
+  /* ---- Initialise Widget ---- */
+  function initWidget(config) {
+    loadingEl.style.display = 'none';
+
+    /* Page copy */
+    if (titleEl && config.pageTitle) titleEl.textContent = config.pageTitle;
+    if (introEl && config.pageIntro) {
+      introEl.textContent = config.pageIntro;
+      introEl.style.display = '';
+    } else if (introEl) {
+      introEl.style.display = 'none';
+    }
+
+    /* Render meal sizes */
+    renderSizes(config.mealSizes || []);
+
+    /* Render day buttons */
+    renderDays(config.availableDays || [], config.popularDays || [], config.popularDaysLabel || 'Most Popular');
+
+    /* Set initial active days (popular days default) */
+    var popular = config.popularDays || [];
+    activeDays = popular.length > 0 ? popular.slice() : (config.availableDays || []).slice(0, 3);
+
+    /* Apply active state to day buttons */
+    var btns = daysGridEl.querySelectorAll('.to-wm__day-btn');
+    for (var i = 0; i < btns.length; i++) {
+      if (activeDays.indexOf(btns[i].dataset.day) > -1) btns[i].classList.add('is-active');
+    }
+
+    /* Hint text for popular days */
+    if (config.popularDays && config.popularDays.length > 0 && daysHintEl) {
+      var popularNames = config.popularDays.map(function(d) { return DAY_NAMES[d] || d; });
+      daysHintEl.textContent = '\u2605 ' + (config.popularDaysLabel || 'Most Popular') + ': ' + popularNames.join(', ');
+    }
+
+    /* Advance notice hint */
+    if (weekHintEl && config.advanceNoticeDays > 0) {
+      weekHintEl.textContent = 'Select the Monday of the week you need deliveries. We need at least ' + config.advanceNoticeDays + ' day' + (config.advanceNoticeDays !== 1 ? 's' : '') + ' advance notice.';
+    }
+
+    /* Set min week date */
+    initWeekPicker(config.advanceNoticeDays || 1);
+
+    /* Allergen disclaimer */
+    if (config.allergenDisclaimer && allergenBox) {
+      allergenBox.innerHTML = '<strong>Allergen &amp; dietary info:</strong> ' + escapeHtml(config.allergenDisclaimer);
+      allergenBox.classList.add('is-visible');
+    }
+
+    /* Render volume discounts */
+    renderDiscountTiers(config.discounts || []);
+
+    /* Render per-day config rows */
+    renderDayConfigs();
+
+    contentEl.style.display = '';
+  }
+
+  /* ---- Render Meal Sizes ---- */
+  function renderSizes(sizes) {
+    if (!sizes || sizes.length === 0) {
+      sizesEl.innerHTML = '<p style="color:#888;font-size:14px;">No meal sizes configured. Please check back soon.</p>';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < sizes.length; i++) {
+      var s = sizes[i];
+      var checked = i === 0 ? ' checked' : '';
+      html += '<label class="to-wm__size-card">';
+      html += '<input type="radio" name="to_wm_size" value="' + escAttr(s.id) + '" data-price="' + s.price + '" data-min="' + (s.minOrderPerDay || 0) + '" data-name="' + escAttr(s.name) + '" data-allergen="' + escAttr(s.allergenInfo || '') + '"' + checked + '>';
+      html += '<span class="to-wm__size-inner">';
+      html += '<span class="to-wm__size-name">' + escapeHtml(s.name) + '</span>';
+      html += '<span class="to-wm__size-price">$' + parseFloat(s.price).toFixed(2) + '</span>';
+      if (s.description) html += '<span class="to-wm__size-desc">' + escapeHtml(s.description) + '</span>';
+      if (s.minOrderPerDay > 0) html += '<span class="to-wm__size-min">Min ' + s.minOrderPerDay + '/day</span>';
+      html += '</span></label>';
+    }
+    sizesEl.innerHTML = html;
+
+    /* Bind size radio change */
+    var radios = sizesEl.querySelectorAll('input[type="radio"]');
+    for (var r = 0; r < radios.length; r++) {
+      radios[r].addEventListener('change', updateSummary);
+    }
+  }
+
+  /* ---- Render Day Buttons ---- */
+  function renderDays(available, popular, popularLabel) {
+    if (!available || available.length === 0) return;
+    var html = '';
+    for (var i = 0; i < available.length; i++) {
+      var day = available[i];
+      var isPopular = popular.indexOf(day) > -1;
+      var popAttr = isPopular ? ' data-popular-label="' + escAttr(popularLabel || '\u2605') + '"' : '';
+      var popClass = isPopular ? ' is-popular' : '';
+      html += '<button type="button" class="to-wm__day-btn' + popClass + '" data-day="' + escAttr(day) + '"' + popAttr + '>';
+      html += DAY_SHORT[day] || day.slice(0, 3);
+      html += '</button>';
+    }
+    daysGridEl.innerHTML = html;
+
+    /* Bind day toggle */
+    var btns = daysGridEl.querySelectorAll('.to-wm__day-btn');
+    for (var b = 0; b < btns.length; b++) {
+      (function(btn) {
+        btn.addEventListener('click', function() {
+          btn.classList.toggle('is-active');
+          var day = btn.dataset.day;
+          var idx = activeDays.indexOf(day);
+          if (idx > -1) activeDays.splice(idx, 1);
+          else activeDays.push(day);
+          /* Preserve config display order */
+          var available = CONFIG ? (CONFIG.availableDays || []) : [];
+          activeDays.sort(function(a, b) { return available.indexOf(a) - available.indexOf(b); });
+          renderDayConfigs();
+        });
+      })(btns[b]);
+    }
+  }
+
+  /* ---- Render Volume Discount Tiers ---- */
+  function renderDiscountTiers(discounts) {
+    if (!discounts || discounts.length === 0) {
+      discountsEl.innerHTML = '';
+      return;
+    }
+    var html = '';
+    for (var i = 0; i < discounts.length; i++) {
+      var d = discounts[i];
+      html += '<div class="to-wm__discount-tier" id="toWmTier_' + d.id + '" data-min="' + d.minQty + '" data-msg="' + escAttr(d.message) + '">' + escapeHtml(d.message) + '</div>';
+    }
+    discountsEl.innerHTML = html;
+  }
+
+  function updateDiscountTiers(totalQty) {
+    if (!CONFIG || !CONFIG.discounts) return;
+    var tiers = discountsEl.querySelectorAll('.to-wm__discount-tier');
+    var bestMatch = -1;
+    var tierData = CONFIG.discounts.slice().sort(function(a, b) { return b.minQty - a.minQty; });
+    for (var t = 0; t < tierData.length; t++) {
+      if (totalQty >= tierData[t].minQty) { bestMatch = t; break; }
+    }
+    for (var i = 0; i < tiers.length; i++) {
+      tiers[i].classList.remove('is-active');
+    }
+    if (bestMatch > -1) {
+      var bestId = 'toWmTier_' + tierData[bestMatch].id;
+      var el = document.getElementById(bestId);
+      if (el) el.classList.add('is-active');
+    }
+  }
+
+  /* ---- Week Picker ---- */
+  function initWeekPicker(advanceDays) {
+    var today = new Date();
+    var target = new Date(today);
+    target.setDate(today.getDate() + advanceDays);
+    /* Find next Monday on or after target */
+    var dow = target.getDay();
+    var daysUntilMon = dow === 1 ? 0 : (8 - dow) % 7 || 7;
+    target.setDate(target.getDate() + daysUntilMon);
+    weekInput.min = target.toISOString().split('T')[0];
+
+    weekInput.addEventListener('input', function() {
+      /* Snap to Monday */
+      var d = new Date(weekInput.value + 'T00:00:00');
+      if (d.getDay() !== 1) {
+        var diff = (1 - d.getDay() + 7) % 7;
+        if (diff === 0) diff = 7;
+        d.setDate(d.getDate() + diff);
+        weekInput.value = d.toISOString().split('T')[0];
+      }
+      renderDayConfigs();
+    });
+  }
+
+  /* ---- Get delivery date string for a given day ---- */
+  function getDeliveryDate(day) {
+    if (!weekInput.value) return DAY_NAMES[day] || day;
+    var monday = new Date(weekInput.value + 'T00:00:00');
+    var offset = DAY_OFFSETS[day] || 0;
+    var d = new Date(monday);
+    d.setDate(monday.getDate() + offset);
+    var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return (DAY_NAMES[day] || day) + ' ' + d.getDate() + ' ' + months[d.getMonth()];
+  }
+
+  /* ---- Render per-day quantity rows ---- */
+  function renderDayConfigs() {
+    var html = '';
+    for (var i = 0; i < activeDays.length; i++) {
+      var day = activeDays[i];
+      var id = 'toWmQty_' + day;
+      var displayDate = getDeliveryDate(day);
+      html += '<div class="to-wm__day-config" data-day="' + day + '">';
+      html += '<div class="to-wm__day-config-header">';
+      html += '<span class="to-wm__day-label to-wm__day-date" data-day="' + day + '">' + escapeHtml(displayDate) + '</span>';
+      html += '<div class="to-wm__day-qty">';
+      html += '<label for="' + id + '">Portions:</label>';
+      html += '<input type="number" id="' + id + '" class="to-wm__qty-input" min="1" value="10" data-day="' + day + '">';
+      html += '</div>';
+      html += '<span class="to-wm__day-price" id="toWmDayPrice_' + day + '">$0.00</span>';
+      html += '</div>';
+      html += '</div>';
+    }
+    dayConfigsEl.innerHTML = html;
+
+    /* Bind qty inputs */
+    var qtyInputs = dayConfigsEl.querySelectorAll('.to-wm__qty-input');
+    for (var q = 0; q < qtyInputs.length; q++) {
+      qtyInputs[q].addEventListener('input', updateSummary);
+      qtyInputs[q].addEventListener('change', updateSummary);
+    }
+
+    updateSummary();
+  }
+
+  /* ---- Get selected meal size data ---- */
+  function getSelectedSize() {
+    var checked = sizesEl ? sizesEl.querySelector('input[type="radio"]:checked') : null;
+    if (!checked) return { price: 0, minOrderPerDay: 0, name: '', allergenInfo: '', id: '' };
+    return {
+      id: checked.value,
+      price: parseFloat(checked.dataset.price) || 0,
+      minOrderPerDay: parseInt(checked.dataset.min) || 0,
+      name: checked.dataset.name || '',
+      allergenInfo: checked.dataset.allergen || '',
+    };
+  }
+
+  /* ---- Update summary totals ---- */
+  function updateSummary() {
+    var size = getSelectedSize();
+    var price = size.price;
+    var minPerDay = size.minOrderPerDay;
+    var totalQty = 0;
+    var dayPrices = {};
+    var minErrors = [];
+
+    for (var i = 0; i < activeDays.length; i++) {
+      var day = activeDays[i];
+      var inp = document.getElementById('toWmQty_' + day);
+      var qty = inp ? (parseInt(inp.value, 10) || 0) : 0;
+      totalQty += qty;
+      dayPrices[day] = qty * price;
+      var dayPriceEl = document.getElementById('toWmDayPrice_' + day);
+      if (dayPriceEl) dayPriceEl.textContent = '$' + (dayPrices[day]).toFixed(2);
+      if (minPerDay > 0 && qty > 0 && qty < minPerDay) {
+        minErrors.push((DAY_NAMES[day] || day) + ': min ' + minPerDay);
+      }
+    }
+
+    var total = totalQty * price;
+
+    if (daysCountEl) daysCountEl.textContent = activeDays.length;
+    if (totalQtyEl) totalQtyEl.textContent = totalQty;
+    if (perPortionEl) perPortionEl.textContent = price > 0 ? ('$' + price.toFixed(2)) : '—';
+    if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
+
+    /* Allergen info from selected size */
+    updateAllergenDisplay(size.allergenInfo);
+
+    /* Update discount tier display */
+    updateDiscountTiers(totalQty);
+
+    /* Validation */
+    var valid = activeDays.length > 0 && totalQty > 0 && weekInput.value && minErrors.length === 0;
+
+    if (activeDays.length === 0) {
+      minWarnEl.classList.add('is-visible');
+      minWarnEl.textContent = 'Please select at least one delivery day.';
+    } else if (minErrors.length > 0) {
+      minWarnEl.classList.add('is-visible');
+      minWarnEl.textContent = 'Minimum order not met — ' + minErrors.join('; ') + '.';
+    } else if (totalQty === 0) {
+      minWarnEl.classList.add('is-visible');
+      minWarnEl.textContent = 'Please enter quantities for your selected days.';
+    } else {
+      minWarnEl.classList.remove('is-visible');
+    }
+
+    submitBtn.disabled = !valid;
+  }
+
+  /* ---- Update allergen display ---- */
+  function updateAllergenDisplay(allergenInfo) {
+    if (!allergenInfo || !allergenInfo.trim() || allergenInfo.trim().toLowerCase() === 'none') {
+      /* Only show if disclaimer is set in config */
+      if (CONFIG && CONFIG.allergenDisclaimer) {
+        allergenBox.innerHTML = '<strong>Allergen &amp; dietary info:</strong> ' + escapeHtml(CONFIG.allergenDisclaimer);
+        allergenBox.classList.add('is-visible');
+      } else {
+        allergenBox.classList.remove('is-visible');
+      }
+    } else {
+      var disclaimer = (CONFIG && CONFIG.allergenDisclaimer) ? ' ' + CONFIG.allergenDisclaimer : '';
+      allergenBox.innerHTML = '<strong>Allergen notice — ' + escapeHtml(size.name || 'this item') + ':</strong> ' + escapeHtml(allergenInfo) + disclaimer;
+      allergenBox.classList.add('is-visible');
+    }
+  }
+
+  /* ---- Form Submit ---- */
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    if (!weekInput.value) {
+      alert('Please select which week this order is for.');
+      weekInput.focus();
+      return;
+    }
+
+    if (activeDays.length === 0) {
+      alert('Please select at least one delivery day.');
+      return;
+    }
+
+    var size = getSelectedSize();
+    if (!size.id) {
+      alert('Please select a meal size.');
+      return;
+    }
+
+    var teamNotes = (teamNotesEl.value || '').trim();
+    var allergyNotesVal = (allergyNotes.value || '').trim();
+    var items = [];
+
+    for (var i = 0; i < activeDays.length; i++) {
+      var day = activeDays[i];
+      var inp = document.getElementById('toWmQty_' + day);
+      var qty = inp ? (parseInt(inp.value, 10) || 0) : 0;
+      if (qty <= 0) continue;
+
+      var deliveryDate = getDeliveryDate(day);
+      var props = {
+        'Day': DAY_NAMES[day] || day,
+        'Week': weekInput.value,
+        'Meal': size.name,
+        '_team_order': 'true',
+      };
+      if (teamNotes) props['Team Notes'] = teamNotes;
+      if (allergyNotesVal) props['Allergy Notes'] = allergyNotesVal;
+
+      /* Use Shopify variant ID if configured, otherwise use size ID as reference */
+      items.push({
+        id: size.id,
+        quantity: qty,
+        properties: props,
+      });
+    }
+
+    if (items.length === 0) {
+      alert('Please enter quantities for at least one day.');
+      return;
+    }
+
+    var origText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Adding to cart...';
+
+    fetch('/cart/add.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ items: items }),
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status && data.status >= 400) throw new Error(data.description || 'Cart error');
+
+      submitBtn.textContent = 'Added to Cart!';
+      submitBtn.style.background = '#1e6b2e';
+
+      /* Confirmation message */
+      var confirm = document.getElementById('toWmConfirm');
+      if (!confirm) {
+        confirm = document.createElement('div');
+        confirm.id = 'toWmConfirm';
+        confirm.style.cssText = 'background:#e8f5e9;border:2px solid #268a3a;border-radius:12px;padding:14px 18px;margin-top:12px;text-align:center;font-size:14px;font-weight:600;color:#268a3a;';
+        submitBtn.parentNode.insertBefore(confirm, submitBtn.nextSibling);
+      }
+      var dayList = activeDays.map(function(d) { return getDeliveryDate(d); });
+      confirm.innerHTML = 'Your weekly order has been added to the cart.<br><span style="font-weight:400;color:#555;font-size:13px;">Delivery days: ' + dayList.join(', ') + '</span>';
+      confirm.style.display = 'block';
+
+      /* Set cart note with delivery schedule */
+      var cartNote = 'WEEKLY TEAM ORDER — Delivery days: ' + dayList.join(', ') + '.';
+      if (teamNotes) cartNote += ' Notes: ' + teamNotes;
+      fetch('/cart/update.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: cartNote }),
+      });
+
+      /* Update cart count in theme */
+      fetch('/cart.js').then(function(r) { return r.json(); }).then(function(cart) {
+        var els = document.querySelectorAll('[data-cart-count], .cart-count, .header__cart-count, .cart__count');
+        for (var i = 0; i < els.length; i++) { els[i].textContent = cart.item_count; }
+      });
+
+      setTimeout(function() {
+        submitBtn.disabled = false;
+        submitBtn.textContent = origText;
+        submitBtn.style.background = '';
+      }, 3000);
+    })
+    .catch(function(err) {
+      console.error('[TeamOrders] Cart error:', err);
+      submitBtn.textContent = 'Error — please try again';
+      submitBtn.style.background = '#c53030';
+      setTimeout(function() {
+        submitBtn.disabled = false;
+        submitBtn.textContent = origText;
+        submitBtn.style.background = '';
+      }, 3000);
+    });
+  });
+
+  /* ---- Utility ---- */
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function escAttr(str) {
+    if (!str) return '';
+    return String(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /* ---- Boot ---- */
+  loadConfig();
+
+})();
+</script>
+
+</section>
+
+{% schema %}
+{
+  "name": "Team Orders — Weekly Catering",
+  "tag": "section",
+  "class": "team-orders-weekly-section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Section heading override",
+      "info": "Leave blank to use the title configured in the Team Orders app settings"
+    },
+    {
+      "type": "textarea",
+      "id": "intro",
+      "label": "Intro text override",
+      "info": "Leave blank to use the intro configured in the Team Orders app settings"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Team Orders — Weekly Catering"
+    }
+  ]
+}
+{% endschema %}

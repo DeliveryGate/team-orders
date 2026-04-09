@@ -1,0 +1,74 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Session {
+  id          String    @id
+  shop        String
+  state       String
+  isOnline    Boolean   @default(false)
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model MerchantPlan {
+  id                  String   @id @default(cuid())
+  shop                String   @unique
+  plan                String   @default("free")
+  subscriptionId      String?
+  availableDays       String   @default("[\"monday\",\"tuesday\",\"wednesday\",\"thursday\",\"friday\"]")
+  popularDaysLabel    String   @default("Most Popular")
+  popularDays         String   @default("[]")
+  advanceNoticeDays   Int      @default(1)
+  allergenDisclaimer  String   @default("")
+  pageTitle           String   @default("Team Lunches")
+  pageIntro           String   @default("")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model MealSize {
+  id              String  @id @default(cuid())
+  shop            String
+  name            String
+  price           Float
+  description     String  @default("")
+  minOrderPerDay  Int     @default(5)
+  allergenInfo    String  @default("")
+  active          Boolean @default(true)
+  sortOrder       Int     @default(0)
+}
+
+model VolumeDiscount {
+  id              String @id @default(cuid())
+  shop            String
+  minQty          Int
+  message         String
+  discountPercent Float  @default(0)
+  sortOrder       Int    @default(0)
+}
+
+model WeeklyOrder {
+  id              String   @id @default(cuid())
+  shop            String
+  shopifyOrderId  String?
+  weekCommencing  String
+  mealSizeId      String
+  dayOrders       String   @default("{}")
+  teamNotes       String   @default("")
+  allergyNotes    String   @default("")
+  totalTrays      Int      @default(0)
+  totalPrice      Float    @default(0)
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+}
